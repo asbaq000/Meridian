@@ -12,8 +12,14 @@ const int = (v, fallback) => (v === undefined || v === '' ? fallback : Number.pa
 
 const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
 
+// Vercel sets this on every deployment. Used to pick a connection-pool size
+// and to keep the in-process reminder timer switched off, since a frozen
+// function cannot run one.
+const isServerless = Boolean(process.env.VERCEL);
+
 export const env = {
   isTest,
+  isServerless,
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: int(process.env.PORT, 4000),
 
@@ -30,7 +36,11 @@ export const env = {
   resendApiKey: process.env.RESEND_API_KEY || '',
   emailFrom: process.env.EMAIL_FROM || 'Smart Booking <onboarding@resend.dev>',
 
-  remindersEnabled: bool(process.env.REMINDERS_ENABLED, !isTest),
+  // Off under serverless regardless of the flag: reminders come from Vercel
+  // Cron there, and a setInterval in a frozen function would never fire.
+  remindersEnabled: bool(process.env.REMINDERS_ENABLED, !isTest) && !isServerless,
+  // Shared secret Vercel Cron presents on its scheduled request.
+  cronSecret: process.env.CRON_SECRET || '',
   reminderIntervalMs: int(process.env.REMINDER_INTERVAL_MS, 5 * 60 * 1000),
   reminderLeadHours: int(process.env.REMINDER_LEAD_HOURS, 24),
 };

@@ -238,6 +238,78 @@ the in-process timer and a cron invocation at once) can never double-send. Run s
 
 ---
 
+## Deploying to Vercel
+
+Two Vercel projects from this one repo, because the two halves have different
+shapes: `web/` is a normal Next.js app, and `server/` becomes a serverless
+function.
+
+Three things change when the API stops being a long-lived process, and they are
+already handled in the code - worth knowing so nothing here looks arbitrary:
+
+- **No `app.listen`.** `api/[...path].js` exports the Express app instead. It is
+  a catch-all route so the function still receives the original request URL,
+  which Express needs for its own routing. `src/server.js` stays the local
+  entry point.
+- **Reminders move to Vercel Cron.** A `setInterval` inside a function that is
+  frozen between invocations never fires. `vercel.json` schedules an hourly call
+  to `GET /api/cron/reminders`, guarded by `CRON_SECRET`. The sweep itself is
+  unchanged and still claims rows with `FOR UPDATE SKIP LOCKED`, so a double
+  invocation cannot double-send.
+- **One database connection per instance.** Each warm instance keeps its own
+  pool, so `max` multiplies across instances. It drops to 1 when `VERCEL` is set.
+
+### 1. API project
+
+New Project -> import this repo -> **Root Directory: `server`**. If Vercel asks,
+allow it to include files outside the root directory: the npm workspace lockfile
+lives at the repo root.
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | Supabase **transaction pooler**, port **6543** - not the 5432 session pooler |
+| `JWT_SECRET` | a long random string |
+| `CRON_SECRET` | a long random string; Vercel Cron presents it as a bearer token |
+| `CORS_ORIGIN` | the web project's URL, once you have it |
+| `NODE_ENV` | `production` |
+| `RESEND_API_KEY` | optional; without it emails go to the function logs |
+
+Port 6543 matters. The 5432 session pooler holds a connection for the life of
+the session, which serverless exhausts quickly. Transaction mode hands the
+connection back at each commit. The `pg_advisory_xact_lock` used on the booking
+path is transaction-scoped, so it survives transaction pooling intact - a
+session-level lock would not have.
+
+### 2. Web project
+
+New Project -> same repo -> **Root Directory: `web`**.
+
+| Variable | Value |
+| --- | --- |
+| `NEXT_PUBLIC_API_URL` | the API project's URL, e.g. `https://meridian-api.vercel.app` |
+
+Then go back and set `CORS_ORIGIN` on the API to this project's URL and redeploy
+it, or every browser request will be blocked.
+
+### 3. Migrations
+
+Vercel does not run them. Apply them from your machine against the same database
+before the first deploy - use the **5432** session pooler for this, since DDL
+belongs on a session connection:
+
+```bash
+npm run migrate
+npm run seed      # optional: demo providers and accounts
+```
+
+### Checking it worked
+
+`GET /api/health` on the API URL returns the database time and the active email
+transport. If it answers but the site cannot reach it, the cause is almost
+always `CORS_ORIGIN` still pointing somewhere else.
+
+---
+
 ## Notable behaviours
 
 - **Cancelling is never refused; rescheduling still is.** These are not the

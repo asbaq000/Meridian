@@ -28,7 +28,11 @@ export function getPool() {
     pool = new Pool({
       connectionString: env.databaseUrl,
       ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
-      max: env.isTest ? 20 : 10,
+      // Every warm serverless instance keeps its own pool, so a large `max`
+      // multiplies across instances and exhausts the database's connection
+      // limit under load. One connection per instance is the right shape
+      // there; a long-lived local process wants a real pool.
+      max: env.isTest ? 20 : env.isServerless ? 1 : 10,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 15_000,
     });
