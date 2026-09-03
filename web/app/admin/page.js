@@ -9,7 +9,7 @@ import {
   Button,
   Card,
   CardHeader,
-  Dialog,
+  Sheet,
   Empty,
   Field,
   Input,
@@ -42,24 +42,24 @@ export default function AdminPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="mb-6">
-        <p className="eyebrow">
+        <p className="label">
           Everything, in your clock · {zoneCity(viewerTimezone)} {offsetLabel(viewerTimezone)}
         </p>
         <h1 className="mt-2 text-3xl">Admin</h1>
       </div>
 
-      <div className="mb-6 flex gap-1 border-b border-rule">
+      <div className="mb-6 flex gap-1 border-b border-line">
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={cn(
               'relative px-3 py-2 text-sm transition-colors',
-              tab === t.id ? 'text-ink' : 'text-slate hover:text-ink',
+              tab === t.id ? 'text-ink' : 'text-ash hover:text-ink',
             )}
           >
             {t.label}
-            {tab === t.id ? <span className="absolute right-0 -bottom-px left-0 h-[2px] bg-brass" /> : null}
+            {tab === t.id ? <span className="absolute right-0 -bottom-px left-0 h-[2px] bg-slate" /> : null}
           </button>
         ))}
       </div>
@@ -151,11 +151,11 @@ function CalendarTab({ viewerTimezone }) {
       {error ? <Notice tone="error">{error}</Notice> : null}
 
       <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-center gap-2 border-b border-rule px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
           <Button size="sm" variant="ghost" onClick={() => setWeekStart(shift(weekStart, -7))}>
             ← Previous
           </Button>
-          <span className="tabular text-[12px] tracking-[0.1em] text-slate uppercase">
+          <span className="clock text-[12px] tracking-[0.1em] text-ash uppercase">
             {days[0].day} {days[0].month} — {days[6].day} {days[6].month}
           </span>
           <Button size="sm" variant="ghost" onClick={() => setWeekStart(shift(weekStart, 7))}>
@@ -179,44 +179,50 @@ function CalendarTab({ viewerTimezone }) {
           </Select>
         </div>
 
-        {/* Seven columns, one per day, in the admin's own zone. Each entry
-            still carries the provider's clock so a global view never hides
-            whose morning it actually is. */}
-        <div className="grid grid-cols-1 divide-y divide-rule sm:grid-cols-7 sm:divide-x sm:divide-y-0">
+        {/* Seven columns, one per day, in the admin's own zone. The columns are
+            recessed to the page ground so each entry can be a white card with a
+            shadow - the same figure/ground relationship as the provider cards on
+            the home screen, rather than a differently-coloured tag per type. */}
+        <div className="grid grid-cols-1 divide-y divide-line sm:grid-cols-7 sm:divide-x sm:divide-y-0">
           {days.map((d) => (
-            <div key={d.date} className="min-h-[220px]">
-              <div className="ruled sticky top-0 border-b border-rule bg-ink px-2 py-2 text-center">
-                <p className="eyebrow text-white/45">{d.weekday}</p>
-                <p className="tabular mt-0.5 text-[15px] leading-none font-medium text-white">{d.day}</p>
+            <div key={d.date} className="min-h-[240px] bg-bone">
+              <div className="ruled sticky top-0 z-10 border-b border-line bg-ink px-2 py-2 text-center">
+                <p className="label text-on-ink/45">{d.weekday}</p>
+                <p className="clock mt-0.5 text-[15px] leading-none font-medium text-on-ink">{d.day}</p>
               </div>
-              <div className="space-y-1 p-1.5">
+              <div className="space-y-2 p-2">
                 {byDay[d.date]?.length ? (
                   byDay[d.date]
                     .filter((b) => b.status !== 'cancelled')
-                    .map((b) => (
-                      <button
-                        key={b.id}
-                        onClick={() => setSelected(b)}
-                        className={cn(
-                          'block w-full rounded-[2px] border-l-2 px-1.5 py-1 text-left transition-colors',
-                          b.kind === 'block'
-                            ? 'border-ink bg-ink/5 hover:bg-ink/10'
-                            : 'border-brass bg-brass-wash hover:bg-brass-lit/25',
-                        )}
-                      >
-                        <span className="tabular block text-[12px] font-medium">
-                          {clock(b.startsAt, viewerTimezone)}
-                        </span>
-                        <span className="block truncate text-[11px] text-slate">
-                          {b.kind === 'block' ? (b.notes || 'Blocked') : b.customerName}
-                        </span>
-                        <span className="block truncate text-[10px] text-slate-soft">
-                          {b.providerName}
-                        </span>
-                      </button>
-                    ))
+                    .map((b) => {
+                      const isBlock = b.kind === 'block';
+                      return (
+                        <button
+                          key={b.id}
+                          onClick={() => setSelected(b)}
+                          className={cn(
+                            'block w-full rounded-[var(--radius-inner)] bg-card p-3 text-left',
+                            'shadow-[var(--shadow-card)] transition-all duration-200',
+                            'hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)]',
+                          )}
+                        >
+                          {/* Same order as a provider card: the number that
+                              matters, its unit, then who and where. */}
+                          <p className="clock text-[17px] leading-none font-medium">
+                            {clock(b.startsAt, viewerTimezone)}
+                          </p>
+                          <p className="label mt-1.5">
+                            {isBlock ? 'Blocked' : `${b.durationMinutes} min`}
+                          </p>
+                          <p className="mt-2.5 truncate text-[13px] font-medium">
+                            {isBlock ? b.notes || 'Time blocked' : b.customerName}
+                          </p>
+                          <p className="mt-0.5 truncate text-[11px] text-mist">{b.providerName}</p>
+                        </button>
+                      );
+                    })
                 ) : (
-                  <p className="px-1.5 py-3 text-center text-[11px] text-slate-soft">—</p>
+                  <p className="py-6 text-center text-[11px] text-mist">&mdash;</p>
                 )}
               </div>
             </div>
@@ -224,10 +230,10 @@ function CalendarTab({ viewerTimezone }) {
         </div>
       </Card>
 
-      <Dialog
+      <Sheet
         open={Boolean(selected)}
         onClose={() => !busy && setSelected(null)}
-        eyebrow={selected?.kind === 'block' ? 'Blocked time' : 'Booking'}
+        label={selected?.kind === 'block' ? 'Blocked time' : 'Booking'}
         title={selected ? `${clock(selected.startsAt, viewerTimezone)}–${clock(selected.endsAt, viewerTimezone)} ${zoneCity(viewerTimezone)}` : ''}
         footer={
           <>
@@ -250,7 +256,7 @@ function CalendarTab({ viewerTimezone }) {
           <dl className="space-y-3 text-sm">
             <Row label="Provider">
               {selected.providerName}
-              <span className="tabular ml-2 text-[12px] text-teal">
+              <span className="clock ml-2 text-[12px] text-slate-deep">
                 {clock(selected.startsAt, selected.localTimes.provider.timezone)}{' '}
                 {zoneCity(selected.localTimes.provider.timezone)}
               </span>
@@ -258,14 +264,14 @@ function CalendarTab({ viewerTimezone }) {
             {selected.customerName ? (
               <Row label="Customer">
                 {selected.customerName}
-                <span className="tabular ml-2 text-[12px] text-teal">
+                <span className="clock ml-2 text-[12px] text-slate-deep">
                   {clock(selected.startsAt, selected.localTimes.customer.timezone)}{' '}
                   {zoneCity(selected.localTimes.customer.timezone)}
                 </span>
               </Row>
             ) : null}
             <Row label="UTC">
-              <span className="tabular text-[12px]">{selected.startsAt}</span>
+              <span className="clock text-[12px]">{selected.startsAt}</span>
             </Row>
             <Row label="Status">
               <Badge tone={selected.kind === 'block' ? 'block' : selected.status}>
@@ -275,14 +281,14 @@ function CalendarTab({ viewerTimezone }) {
             {selected.notes ? <Row label="Notes">{selected.notes}</Row> : null}
           </dl>
         ) : null}
-      </Dialog>
+      </Sheet>
     </div>
   );
 }
 
 const Row = ({ label, children }) => (
   <div className="flex gap-4">
-    <dt className="eyebrow w-20 shrink-0 pt-0.5">{label}</dt>
+    <dt className="label w-20 shrink-0 pt-0.5">{label}</dt>
     <dd className="min-w-0 flex-1">{children}</dd>
   </div>
 );
@@ -339,11 +345,11 @@ function BlockTab({ viewerTimezone }) {
   return (
     <Card>
       <CardHeader
-        eyebrow="Takes the time off the calendar"
+        label="Takes the time off the calendar"
         title="Block a window"
         action={
           provider ? (
-            <span className="tabular text-[11px] text-slate">
+            <span className="clock text-[11px] text-ash">
               entered in {zoneCity(provider.timezone)} {offsetLabel(provider.timezone)}
             </span>
           ) : null
@@ -379,7 +385,7 @@ function BlockTab({ viewerTimezone }) {
           </div>
         ) : null}
         <div className="sm:col-span-2">
-          <Button type="submit" variant="brass" disabled={busy || !form.date || !form.providerId}>
+          <Button type="submit" variant="ink" disabled={busy || !form.date || !form.providerId}>
             {busy ? 'Blocking…' : 'Block this window'}
           </Button>
         </div>
@@ -403,15 +409,15 @@ function PeopleTab() {
 
   return (
     <Card>
-      <CardHeader eyebrow="Roles decide what each account can reach" title="People" />
-      <ul className="divide-y divide-rule">
+      <CardHeader label="Roles decide what each account can reach" title="People" />
+      <ul className="divide-y divide-line">
         {users.map((u) => (
           <li key={u.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">{u.name}</p>
-              <p className="truncate text-[13px] text-slate">{u.email}</p>
+              <p className="truncate text-[13px] text-ash">{u.email}</p>
             </div>
-            <span className="tabular text-[11px] text-slate">
+            <span className="clock text-[11px] text-ash">
               {zoneCity(u.timezone)} {offsetLabel(u.timezone)}
             </span>
             <Select
@@ -460,7 +466,7 @@ function NotificationsTab() {
   return (
     <Card>
       <CardHeader
-        eyebrow="Every notification is recorded, delivered or not"
+        label="Every notification is recorded, delivered or not"
         title="Notifications"
         action={
           <Button size="sm" variant="outline" onClick={sweep} disabled={busy}>
@@ -481,18 +487,18 @@ function NotificationsTab() {
           happening.
         </Empty>
       ) : (
-        <ul className="divide-y divide-rule">
+        <ul className="divide-y divide-line">
           {emails.map((e) => (
             <li key={e.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
               <Badge tone={e.status === 'sent' ? 'confirmed' : 'cancelled'}>{e.transport}</Badge>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm">{e.subject}</p>
-                <p className="truncate text-[12px] text-slate">
+                <p className="truncate text-[12px] text-ash">
                   {e.to_email} · {e.template}
                 </p>
               </div>
-              {e.error ? <span className="text-[12px] text-rose">{e.error}</span> : null}
-              <span className="tabular text-[11px] text-slate-soft">
+              {e.error ? <span className="text-[12px] text-clay">{e.error}</span> : null}
+              <span className="clock text-[11px] text-mist">
                 {new Date(e.created_at).toISOString().slice(11, 16)}
               </span>
             </li>

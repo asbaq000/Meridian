@@ -147,7 +147,7 @@ export default function ProviderPage() {
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">
+          <p className="label">
             Hours are entered in the provider&rsquo;s own clock
             {provider ? ` · ${zoneCity(provider.timezone)} ${offsetLabel(provider.timezone)}` : ''}
           </p>
@@ -181,7 +181,7 @@ export default function ProviderPage() {
           {/* -------------------------------------------- weekly pattern --- */}
           <Card>
             <CardHeader
-              eyebrow="Recurring"
+              label="Recurring"
               title="Weekly hours"
               action={
                 <Button
@@ -197,7 +197,7 @@ export default function ProviderPage() {
             />
             <div className="p-5">
               {rules.length === 0 ? (
-                <p className="py-4 text-sm text-slate">
+                <p className="py-4 text-sm text-ash">
                   No hours set, so nothing is bookable. Add a window to open the calendar.
                 </p>
               ) : (
@@ -229,7 +229,7 @@ export default function ProviderPage() {
                           setRules((all) => all.map((x, j) => (j === i ? { ...x, startTime: e.target.value } : x)))
                         }
                       />
-                      <span className="text-slate">to</span>
+                      <span className="text-ash">to</span>
                       <Input
                         type="time"
                         aria-label="End"
@@ -242,7 +242,7 @@ export default function ProviderPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="ml-auto text-rose"
+                        className="ml-auto text-clay"
                         onClick={() => setRules((all) => all.filter((_, j) => j !== i))}
                       >
                         Remove
@@ -251,11 +251,11 @@ export default function ProviderPage() {
                   ))}
                 </ul>
               )}
-              <div className="mt-5 flex items-center gap-3 border-t border-rule pt-4">
-                <Button variant="brass" onClick={saveRules} disabled={busy}>
+              <div className="mt-5 flex items-center gap-3 border-t border-line pt-4">
+                <Button variant="ink" onClick={saveRules} disabled={busy}>
                   {busy ? 'Saving…' : 'Save weekly hours'}
                 </Button>
-                <p className="text-xs text-slate">
+                <p className="text-xs text-ash">
                   Two windows on one day become a lunch break. Overlapping windows merge.
                 </p>
               </div>
@@ -264,7 +264,7 @@ export default function ProviderPage() {
 
           {/* ------------------------------------------------ exceptions --- */}
           <Card>
-            <CardHeader eyebrow="One-off" title="Holidays and short days" />
+            <CardHeader label="One-off" title="Holidays and short days" />
             <div className="p-5">
               <form onSubmit={addException} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                 <Field label="Date">
@@ -309,23 +309,23 @@ export default function ProviderPage() {
                 ) : null}
               </form>
 
-              <ul className="mt-5 divide-y divide-rule border-t border-rule">
+              <ul className="mt-5 divide-y divide-line border-t border-line">
                 {data.exceptions.length === 0 ? (
-                  <li className="py-4 text-sm text-slate">
+                  <li className="py-4 text-sm text-ash">
                     No exceptions. The weekly pattern applies every week.
                   </li>
                 ) : (
                   data.exceptions.map((ex) => (
                     <li key={ex.id} className="flex items-center gap-3 py-3">
-                      <span className="tabular text-sm">{ex.date}</span>
-                      <Badge tone={ex.kind === 'blocked' ? 'cancelled' : 'brass'}>
+                      <span className="clock text-sm">{ex.date}</span>
+                      <Badge tone={ex.kind === 'blocked' ? 'cancelled' : 'accent'}>
                         {ex.kind === 'blocked' ? 'closed' : `${ex.startTime}–${ex.endTime}`}
                       </Badge>
-                      {ex.note ? <span className="truncate text-[13px] text-slate">{ex.note}</span> : null}
+                      {ex.note ? <span className="truncate text-[13px] text-ash">{ex.note}</span> : null}
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="ml-auto text-rose"
+                        className="ml-auto text-clay"
                         onClick={() =>
                           providerApi.removeException(slug, ex.id).then(load).catch((e) =>
                             setStatus({ tone: 'error', text: e.message }),
@@ -361,7 +361,7 @@ function BookingRules({ provider, onSave, busy }) {
 
   return (
     <Card>
-      <CardHeader eyebrow="Policy" title="Booking rules" />
+      <CardHeader label="Policy" title="Booking rules" />
       <div className="grid gap-4 p-5 sm:grid-cols-2">
         <Field label="Appointment length" hint="Also the spacing of offered start times.">
           <Input type="number" min={5} max={1440} value={form.slotMinutes} onChange={num('slotMinutes')} />
@@ -390,7 +390,7 @@ function BookingRules({ provider, onSave, busy }) {
           />
         </Field>
         <div className="flex items-end">
-          <Button variant="brass" onClick={() => onSave(form)} disabled={busy}>
+          <Button variant="ink" onClick={() => onSave(form)} disabled={busy}>
             {busy ? 'Saving…' : 'Save rules'}
           </Button>
         </div>

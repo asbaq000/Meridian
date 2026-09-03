@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import { Button, Card, Field, Input, Notice, Select } from '@/components/ui';
+import { Button, Card, Field, Input, Notice, SelectField } from '@/components/ui';
 import { browserTimezone, offsetLabel, timezoneOptions, zoneCity } from '@/lib/time';
 
 export default function RegisterPage() {
@@ -45,10 +45,14 @@ export default function RegisterPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
-      <p className="eyebrow">Takes a minute</p>
-      <h1 className="mt-2 mb-8 text-3xl">Create your account</h1>
+      <p className="label mb-3">Takes a minute</p>
+      <h1 className="display mb-8 text-[40px]">
+        Create your
+        <br />
+        <strong>account.</strong>
+      </h1>
 
-      <Card className="p-6">
+      <Card className="settle p-6">
         <form onSubmit={submit} className="space-y-4">
           <Field label="Name">
             <Input required value={form.name} onChange={set('name')} placeholder="Sam Rivera" />
@@ -77,26 +81,26 @@ export default function RegisterPage() {
             label="Your timezone"
             hint="Every time you see is converted into this. Change it any time."
           >
-            <Select value={form.timezone} onChange={set('timezone')}>
+            <SelectField value={form.timezone} onChange={set('timezone')}>
               {timezoneOptions([form.timezone]).map((tz) => (
                 <option key={tz} value={tz}>
                   {zoneCity(tz)} · {offsetLabel(tz)}
                 </option>
               ))}
-            </Select>
+            </SelectField>
           </Field>
           {error ? (
             <Notice tone="error" title="Could not create the account">
               {error}
             </Notice>
           ) : null}
-          <Button type="submit" variant="brass" className="w-full" disabled={busy}>
+          <Button type="submit" size="lg" className="w-full" disabled={busy}>
             {busy ? 'Creating…' : 'Create account'}
           </Button>
         </form>
       </Card>
 
-      <p className="mt-6 text-sm text-slate">
+      <p className="mt-6 text-sm text-ash">
         Already have one?{' '}
         <Link href="/login" className="font-medium text-ink underline underline-offset-4">
           Sign in

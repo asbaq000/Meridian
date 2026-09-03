@@ -1,84 +1,185 @@
 @import 'tailwindcss';
 
 /* ==========================================================================
-   Meridian - design tokens
+   Meridian
 
    A meridian is a line of longitude: the thing that makes one instant carry
-   two names. That is the whole subject of this app, so the palette is built
-   as two instruments that disagree - a cold navy for structure, a warm brass
-   for the moment you are choosing - on cool paper rather than warm cream.
+   two names. The palette is one quiet ground, one dusty blue that always and
+   only means "the other person's clock", and a hard contrast tone for the
+   moment you commit. Nothing else is coloured, so the blue reads as
+   information rather than decoration.
+
+   Theming: `@theme inline` points every utility at a runtime variable, so the
+   whole palette swaps by changing `--c-*` under [data-theme]. Dark is the same
+   scheme inverted - the ground and the ink trade places, and the accent is
+   lifted just enough to hold contrast against a dark card.
    ========================================================================== */
-@theme {
-  --color-ink: #101826; /* navy-black: text, headers, the calendar ground */
-  --color-ink-soft: #1c2839;
-  --color-slate: #56637a; /* secondary text */
-  --color-slate-soft: #8b96a8;
-  --color-paper: #e8ebee; /* page ground, deliberately cool */
-  --color-card: #ffffff;
-  --color-rule: #d2d8de;
+@theme inline {
+  --color-bone: var(--c-bone);
+  --color-card: var(--c-card);
+  --color-ink: var(--c-ink);
+  --color-ink-soft: var(--c-ink-soft);
+  --color-ash: var(--c-ash);
+  --color-mist: var(--c-mist);
+  --color-line: var(--c-line);
 
-  --color-brass: #a4630c; /* the accent: clock faces, split-flap boards */
-  --color-brass-lit: #f0b429; /* highlight fill */
-  --color-brass-wash: #fdf5e4;
+  --color-slate: var(--c-slate);
+  --color-slate-deep: var(--c-slate-deep);
+  --color-slate-tint: var(--c-slate-tint);
 
-  --color-teal: #17605f; /* the *other* party's clock - a second instrument */
-  --color-teal-wash: #e6f0ef;
+  --color-clay: var(--c-clay);
+  --color-clay-tint: var(--c-clay-tint);
 
-  --color-rose: #9d2334; /* cancelled, blocked, destructive */
-  --color-rose-wash: #fbebed;
+  /* Surface + on-surface pairs. `text-white` on `bg-ink` silently breaks the
+     moment ink inverts, so every inverted surface names the colour that sits
+     on top of it. */
+  --color-on-ink: var(--c-on-ink);
+  --color-accent: var(--c-accent);
+  --color-on-accent: var(--c-on-accent);
 
-  --font-sans: 'Archivo', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
 
-  --radius-slot: 3px;
+  --radius-card: 26px;
+  --radius-inner: 16px;
 }
+
+/* ------------------------------------------------------------- light --- */
+:root {
+  color-scheme: light;
+
+  --c-bone: #f1f0ec; /* page ground - warm grey, not cream */
+  --c-card: #ffffff;
+  --c-ink: #17171a; /* text, and the commit bar */
+  --c-ink-soft: #2a2a30;
+  --c-ash: #6e6e77; /* secondary text */
+  --c-mist: #9d9da5; /* tertiary, placeholders */
+  --c-line: #e4e2dd;
+
+  --c-slate: #59738f; /* THE accent: their clock, selection */
+  --c-slate-deep: #3d5570; /* legible slate for small text */
+  --c-slate-tint: #edf1f5;
+
+  --c-clay: #a85b4c; /* cancelled / destructive, nothing else */
+  --c-clay-tint: #f7eeec;
+
+  --c-on-ink: #ffffff; /* sits on the inverted bar / pills */
+  --c-accent: #3d5570; /* strong selection fill */
+  --c-on-accent: #ffffff;
+  --c-scrim: rgba(23, 23, 26, 0.35);
+
+  /* Soft, wide, low-opacity. Cards should look set down, not cut out. */
+  --shadow-card: 0 1px 2px rgba(23, 23, 26, 0.03), 0 14px 34px -18px rgba(23, 23, 26, 0.18);
+  --shadow-lift: 0 2px 4px rgba(23, 23, 26, 0.04), 0 22px 48px -20px rgba(23, 23, 26, 0.24);
+
+  /* Tint used for recessed wells (slot chips, ribbon track). */
+  --c-well: rgba(23, 23, 26, 0.035);
+  --c-well-hover: rgba(23, 23, 26, 0.07);
+  --c-guide: rgba(255, 255, 255, 0.7);
+}
+
+/* -------------------------------------------------------------- dark --- */
+/* The same scheme, inverted: ground and ink trade places. The accent lifts,
+   because #59738f on a dark card fails contrast, and shadows give way to a
+   hairline, since a shadow on near-black reads as nothing. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --c-bone: #121214;
+  --c-card: #1c1c1f;
+  --c-ink: #f1f0ec;
+  --c-ink-soft: #e2e1dc;
+  --c-ash: #9b9ba3;
+  --c-mist: #6b6b74;
+  --c-line: #2c2c31;
+
+  --c-slate: #7f9ab7;
+  --c-slate-deep: #a9c1da;
+  --c-slate-tint: #1f2c39;
+
+  --c-clay: #d98676;
+  --c-clay-tint: #2f1f1c;
+
+  --c-on-ink: #121214; /* ink is now light, so what sits on it is dark */
+  --c-accent: #a9c1da;
+  --c-on-accent: #121214;
+  --c-scrim: rgba(0, 0, 0, 0.6);
+
+  --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.045);
+  --shadow-lift: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 24px 50px -20px rgba(0, 0, 0, 0.7);
+
+  --c-well: rgba(255, 255, 255, 0.05);
+  --c-well-hover: rgba(255, 255, 255, 0.09);
+  --c-guide: rgba(0, 0, 0, 0.35);
+}
+
+/* Light is the default on purpose: the system preference is deliberately NOT
+   followed. Dark applies only when the viewer asks for it via the toggle,
+   which writes data-theme="dark" and persists it. */
 
 /* --------------------------------------------------------------- base --- */
-* {
-  border-color: var(--color-rule);
-}
-
 html {
   -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--color-paper);
-  color: var(--color-ink);
+  background: var(--c-bone);
+  color: var(--c-ink);
   font-family: var(--font-sans);
-  font-feature-settings: 'ss01';
   -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 300ms ease, color 300ms ease;
 }
 
-/* Every number in this app is a time. Lining them up is not cosmetic: a
-   column of slot times that jitters is a column you cannot scan. */
-.tabular {
+/* The display stack the references use: a light line, then a heavy one.
+   The weight jump does the work, so the size stays constant. */
+.display {
+  font-weight: 200;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+}
+.display strong,
+.display b {
+  font-weight: 700;
+}
+
+/* Labels are small, spaced and quiet - they name a thing, never decorate. */
+.label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-mist);
+}
+
+/* Clock digits are the one place a second typeface is allowed. */
+.clock {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
-}
-
-/* Section labels carry a real UTC offset rather than a decorative number. */
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-slate);
+  letter-spacing: -0.02em;
 }
 
 h1,
 h2,
 h3 {
-  letter-spacing: -0.022em;
-  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 
-/* --------------------------------------------------- focus and motion --- */
+/* Recessed surfaces, so slot chips and the ribbon track invert with the theme
+   instead of staying a fixed black tint. */
+.well {
+  background-color: var(--c-well);
+}
+.well-hover:hover {
+  background-color: var(--c-well-hover);
+}
+
+/* -------------------------------------------------------------- focus --- */
 :focus-visible {
-  outline: 2px solid var(--color-brass);
-  outline-offset: 2px;
+  outline: 2px solid var(--c-slate-deep);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -88,32 +189,17 @@ h3 {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-/* ------------------------------------------------------- the signature --- */
-/* The dual clock strip: two instruments side by side, ticking, disagreeing.
-   The seconds colon blinks so it reads as live rather than as a static label. */
-@keyframes tick {
-  0%,
-  49% {
-    opacity: 1;
-  }
-  50%,
-  100% {
-    opacity: 0.25;
-  }
-}
-
-.tick {
-  animation: tick 2s step-end infinite;
-}
-
-/* Split-flap-ish reveal for slots arriving after a date change. */
-@keyframes flap-in {
+/* ------------------------------------------------------------- motion --- */
+/* One orchestrated entrance, not scattered effects: content settles upward
+   in sequence on first paint. */
+@keyframes settle {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -121,30 +207,64 @@ h3 {
   }
 }
 
-.flap-in {
-  animation: flap-in 220ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+.settle {
+  animation: settle 480ms cubic-bezier(0.16, 0.84, 0.34, 1) both;
+}
+.settle-1 {
+  animation-delay: 60ms;
+}
+.settle-2 {
+  animation-delay: 120ms;
+}
+.settle-3 {
+  animation-delay: 180ms;
 }
 
-/* ------------------------------------------------------------ surfaces --- */
-.card {
-  background: var(--color-card);
-  border: 1px solid var(--color-rule);
+/* The ribbon's available band draws itself open once, left to right. */
+@keyframes unfurl {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
-/* A hairline grid that echoes a printed timetable, used behind the navy
-   header and the admin calendar. */
-.ruled {
-  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 44px 100%;
+.unfurl {
+  transform-origin: left center;
+  animation: unfurl 620ms cubic-bezier(0.16, 0.84, 0.34, 1) both;
 }
 
+/* ------------------------------------------------------------ scrolls --- */
+/* Horizontal rails (days, slots) scroll without a visible bar, the way the
+   reference apps do. */
+.rail {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+.rail::-webkit-scrollbar {
+  display: none;
+}
+.rail > * {
+  scroll-snap-align: start;
+}
+
+/* --------------------------------------------------------- form reset --- */
 input,
 select,
-textarea {
+textarea,
+button {
   font-family: inherit;
+  font-variant-numeric: inherit;
+}
+
+select {
+  background-image: none;
 }
 
 input[type='date'],
 input[type='time'] {
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }

@@ -22,7 +22,15 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+        />
+        {/* Applies the saved theme before first paint, so there is no flash
+            of the wrong one. Deliberately inline and blocking: a useEffect
+            would run after the browser has already painted light. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('meridian.theme');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t}}catch(e){}})()`,
+          }}
         />
       </head>
       <body suppressHydrationWarning>
@@ -30,10 +38,10 @@ export default function RootLayout({ children }) {
           <div className="flex min-h-screen flex-col">
             <Nav />
             <main className="flex-1">{children}</main>
-            <footer className="border-t border-rule px-4 py-6 sm:px-6">
-              <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 text-xs text-slate">
-                <span className="font-mono tracking-[0.14em] uppercase">Meridian</span>
-                <span>All times stored in UTC. Nothing is ever displayed without its zone.</span>
+            <footer className="px-4 pt-8 pb-6 sm:px-6">
+              <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-6 text-xs text-mist">
+                <span className="tracking-[0.16em] uppercase">Meridian</span>
+                <span>Every time stored in UTC. None ever shown without its zone.</span>
               </div>
             </footer>
           </div>
