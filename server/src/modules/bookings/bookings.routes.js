@@ -101,8 +101,6 @@ router.get(
 
 const cancelSchema = z.object({
   reason: z.string().max(500).default(''),
-  // Admin-only escape hatch for the cancellation cutoff.
-  override: z.boolean().default(false),
 });
 
 router.post(
@@ -110,11 +108,13 @@ router.post(
   requireAuth,
   validate(cancelSchema),
   asyncRoute(async (req, res) => {
+    // Cancelling is never refused - a booking inside the notice window is
+    // simply recorded as a late cancellation. Only rescheduling still enforces
+    // the cutoff.
     const booking = await cancelBooking({
       bookingId: req.params.id,
       actor: req.user,
       reason: req.body.reason,
-      override: req.body.override,
     });
     res.json({ booking: serializeBooking(booking, req.query.timezone) });
   }),

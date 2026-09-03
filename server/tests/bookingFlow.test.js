@@ -255,22 +255,74 @@ describe('cancellation policy', () => {
     expect(emails.map((e) => e.template)).toContain('booking_cancelled');
   });
 
-  it('blocks cancellation inside the cutoff window', async () => {
+  it('still allows cancellation inside the cutoff, and records it as late', async () => {
+    // The rule that matters: a customer who is not coming can always say so.
+    // Refusing would leave the provider holding a slot nobody can use.
     const created = await bookInsideCutoff();
     const res = await api()
       .post(`/api/bookings/${created.id}/cancel`)
       .set('Authorization', customer.auth)
-      .send({})
-      .expect(409);
+      .send({ reason: 'Suddenly ill' })
+      .expect(200);
 
-    expect(res.body.error.code).toBe('CANCELLATION_CUTOFF_PASSED');
-    expect(res.body.error.details.cutoffHours).toBe(24);
+    expect(res.body.booking.status).toBe('cancelled');
+    expect(res.body.booking.cancelledLate).toBe(true);
+    expect(res.body.booking.cancellationReason).toBe('Suddenly ill');
 
-    const { rows } = await query('SELECT status FROM bookings WHERE id = $1', [created.id]);
-    expect(rows[0].status).toBe('confirmed');
+    const { rows } = await query('SELECT status, cancelled_late FROM bookings WHERE id = $1', [
+      created.id,
+    ]);
+    expect(rows[0].status).toBe('cancelled');
+    expect(rows[0].cancelled_late).toBe(true);
   });
 
-  it('lets an admin override the cutoff, and records that it was overridden', async () => {
+  it('does not flag a cancellation made outside the window', async () => {
+    const { startsAt } = futureSlot({ weekday: 3, time: '10:00', zone: 'Europe/Berlin' });
+    const created = await book(startsAt).expect(201);
+    const res = await api()
+      .post(`/api/bookings/${created.body.booking.id}/cancel`)
+      .set('Authorization', customer.auth)
+      .send({})
+      .expect(200);
+    expect(res.body.booking.cancelledLate).toBe(false);
+  });
+
+  it('frees the slot immediately even when cancelled late', async () => {
+    // The point of allowing it: the time genuinely goes back on the calendar.
+    const created = await bookInsideCutoff();
+    const { rows: before } = await query(
+      `SELECT count(*)::int AS n FROM bookings WHERE provider_id = $1 AND status = 'confirmed'`,
+      [provider.id],
+    );
+    expect(before[0].n).toBe(1);
+
+    await api()
+      .post(`/api/bookings/${created.id}/cancel`)
+      .set('Authorization', customer.auth)
+      .send({})
+      .expect(200);
+
+    const { rows: after } = await query(
+      `SELECT count(*)::int AS n FROM bookings WHERE provider_id = $1 AND status = 'confirmed'`,
+      [provider.id],
+    );
+    expect(after[0].n).toBe(0);
+  });
+
+  it("tells the provider the cancellation was late", async () => {
+    const created = await bookInsideCutoff();
+    await api()
+      .post(`/api/bookings/${created.id}/cancel`)
+      .set('Authorization', customer.auth)
+      .send({})
+      .expect(200);
+
+    const emails = await emailsFor(created.id);
+    const cancelled = emails.find((e) => e.template === 'booking_cancelled');
+    expect(cancelled.body).toMatch(/short notice/i);
+  });
+
+  it('lets an admin cancel on someone behalf too', async () => {
     const created = await bookInsideCutoff();
     const res = await api()
       .post(`/api/admin/bookings/${created.id}/override-cancel`)
@@ -279,16 +331,7 @@ describe('cancellation policy', () => {
       .expect(200);
 
     expect(res.body.booking.status).toBe('cancelled');
-    expect(res.body.booking.cutoffOverridden).toBe(true);
-  });
-
-  it('does not let a non-admin override by simply asking', async () => {
-    const created = await bookInsideCutoff();
-    await api()
-      .post(`/api/bookings/${created.id}/cancel`)
-      .set('Authorization', customer.auth)
-      .send({ override: true })
-      .expect(409);
+    expect(res.body.booking.cancelledLate).toBe(true);
   });
 
   it('refuses to cancel twice', async () => {
@@ -397,7 +440,7 @@ describe('rescheduling', () => {
       .expect(201);
   });
 
-  it('refuses a reschedule inside the cutoff window', async () => {
+  it('refuses a reschedule inside the cutoff, even though cancelling is allowed', async () => {
     const startsAt = addMinutes(new Date().toISOString(), 60);
     const { rows } = await query(
       `INSERT INTO bookings
@@ -414,6 +457,13 @@ describe('rescheduling', () => {
       .send({ startsAt: target })
       .expect(409);
     expect(res.body.error.code).toBe('CANCELLATION_CUTOFF_PASSED');
+
+    // The same booking CAN still be cancelled - that is the whole distinction.
+    await api()
+      .post(`/api/bookings/${rows[0].id}/cancel`)
+      .set('Authorization', customer.auth)
+      .send({})
+      .expect(200);
   });
 
   it('emails the new time and the old one', async () => {

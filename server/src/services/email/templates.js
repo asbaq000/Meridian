@@ -76,8 +76,11 @@ export const TEMPLATES = {
       role,
       [
         booking.cancellation_reason ? line('Reason', booking.cancellation_reason) : null,
+        booking.cancelled_late
+          ? line('Note', 'Cancelled inside the notice window - short notice.')
+          : null,
         booking.cutoff_overridden
-          ? line('Note', 'Cancelled after the cutoff, by admin override.')
+          ? line('Note', 'Pushed through the cutoff by admin override.')
           : null,
       ].filter(Boolean),
     ),

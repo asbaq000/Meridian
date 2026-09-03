@@ -114,9 +114,9 @@ router.delete(
 
 // ------------------------------------------------------------- overrides ---
 /**
- * Force-cancel past the cutoff. Distinct from the customer-facing cancel route
- * only in that `override` defaults to true here - the audit trail records it
- * as an override either way.
+ * Cancel on someone's behalf. Since cancelling is no longer gated by the
+ * cutoff, this differs from the customer route only in who may call it and in
+ * the default reason - an admin cancelling for a provider who called in sick.
  */
 router.post(
   '/bookings/:id/override-cancel',
@@ -126,7 +126,6 @@ router.post(
       bookingId: req.params.id,
       actor: req.user,
       reason: req.body.reason,
-      override: true,
     });
     res.json({ booking: serializeBooking(booking) });
   }),

@@ -23,7 +23,7 @@ import { sendBookingEmail } from '../../services/email/index.js';
 const BOOKING_COLUMNS = `
   b.id, b.provider_id, b.customer_id, b.kind, b.status, b.starts_at, b.ends_at,
   b.buffer_minutes, b.customer_timezone, b.provider_timezone, b.notes,
-  b.cancelled_at, b.cancellation_reason, b.cutoff_overridden,
+  b.cancelled_at, b.cancellation_reason, b.cutoff_overridden, b.cancelled_late,
   b.rescheduled_to, b.rescheduled_from, b.reminder_sent_at, b.created_at
 `;
 
@@ -88,6 +88,7 @@ export function serializeBooking(row, viewerTimezone = null) {
 
     cancelledAt: row.cancelled_at,
     cancellationReason: row.cancellation_reason,
+    cancelledLate: row.cancelled_late,
     cutoffOverridden: row.cutoff_overridden,
     rescheduledTo: row.rescheduled_to,
     rescheduledFrom: row.rescheduled_from,
@@ -151,17 +152,28 @@ async function assertWithinAvailability(provider, startsAt, endsAt, durationMinu
   }
 }
 
-function assertCutoff(booking, actor, override) {
+/** Is this booking inside the provider's notice window? */
+function isInsideCutoff(booking) {
   const cutoffHours = booking.cancellation_cutoff_hours ?? 0;
   if (cutoffHours <= 0) return false;
+  return nowInstant() >= addMinutes(booking.starts_at, -cutoffHours * 60);
+}
 
-  const deadline = addMinutes(booking.starts_at, -cutoffHours * 60);
-  if (nowInstant() < deadline) return false;
-
-  // Past the cutoff. Only an admin can push it through, and only when they
-  // explicitly ask to - so an accidental admin click behaves like anyone else's.
+/**
+ * Rescheduling keeps the hard rule.
+ *
+ * Cancelling and rescheduling are not the same act. Cancelling *informs* the
+ * provider - it hands time back, and refusing it only means they hold a slot
+ * nobody can use. Rescheduling *asks* them to take a different time, which is
+ * exactly what short notice makes unreasonable. So the cutoff blocks the
+ * second and merely records the first.
+ */
+function assertRescheduleCutoff(booking, actor, override) {
+  if (!isInsideCutoff(booking)) return false;
+  // Only an admin can push it through, and only when they explicitly ask to,
+  // so an accidental admin click behaves like anyone else's.
   if (actor?.role === 'admin' && override) return true;
-  throw cutoffPassed(cutoffHours, booking.starts_at);
+  throw cutoffPassed(booking.cancellation_cutoff_hours ?? 0, booking.starts_at);
 }
 
 /**
@@ -306,7 +318,7 @@ export async function createBooking({
 }
 
 // ---------------------------------------------------------------- cancel ---
-export async function cancelBooking({ bookingId, actor, reason = '', override = false }) {
+export async function cancelBooking({ bookingId, actor, reason = '' }) {
   const booking = await loadBooking(bookingId);
   const provider = await getProviderOrFail(booking.provider_id);
   assertCanViewBooking(actor, booking, provider);
@@ -318,7 +330,10 @@ export async function cancelBooking({ bookingId, actor, reason = '', override = 
     throw conflict('Completed bookings cannot be cancelled', 'ALREADY_COMPLETED');
   }
 
-  const overridden = assertCutoff(booking, actor, override);
+  // A cancellation is never refused. Inside the notice window it is recorded
+  // as late so the provider's email says so and any fee policy has something
+  // to act on, but the slot is still handed back either way.
+  const late = isInsideCutoff(booking);
 
   // Flipping status out of 'confirmed' drops the row from the partial
   // exclusion index, so the slot is bookable again the moment this commits.
@@ -329,9 +344,9 @@ export async function cancelBooking({ bookingId, actor, reason = '', override = 
             cancelled_at = now(),
             cancelled_by = $2,
             cancellation_reason = $3,
-            cutoff_overridden = $4
+            cancelled_late = $4
       WHERE id = $1 AND status = 'confirmed'`,
-    [bookingId, actor?.id ?? null, reason, overridden],
+    [bookingId, actor?.id ?? null, reason, late],
   );
 
   const updated = await loadBooking(bookingId);
@@ -369,9 +384,10 @@ export async function rescheduleBooking({
     throw badRequest('That is already the booking time');
   }
 
-  // The cutoff applies to the time being moved away from - a booking starting
-  // in an hour is locked whether you are cancelling it or shifting it.
-  const overridden = assertCutoff(original, actor, override);
+  // The cutoff applies to the time being moved away from: a booking starting
+  // in an hour cannot be shifted onto the provider at that notice, even though
+  // it can still be cancelled outright.
+  const overridden = assertRescheduleCutoff(original, actor, override);
 
   if (!(skipAvailabilityCheck && actor?.role === 'admin')) {
     await assertWithinAvailability(provider, startsAt, endsAt, duration);

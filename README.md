@@ -171,7 +171,7 @@ npm test
 | --- | --- |
 | `slotEngine.test.js` | Slot derivation, exceptions, buffers, horizons, and DST — including the wall-clock hour that does not exist on a spring-forward day and the one that happens twice in autumn. |
 | `concurrency.test.js` | 25 simultaneous requests for one slot; overlapping-but-not-identical starts; buffer contention; a raw two-transaction race below the application entirely; a freed slot being re-contended; concurrent reschedules onto one target. |
-| `bookingFlow.test.js` | Slot lifecycle, cross-timezone rendering, availability enforcement, cancellation cutoff and admin override, reschedule release-then-take. |
+| `bookingFlow.test.js` | Slot lifecycle, cross-timezone rendering, availability enforcement, the cancel-always / reschedule-blocked split, reschedule release-then-take. |
 | `adminAndReminders.test.js` | Blocks, admin calendar, the reminder sweep under concurrent runs, availability editing, buffer changes that would conflict. |
 
 The concurrency tests assert on **the row count in the table**, not on response codes — that is what
@@ -210,7 +210,8 @@ Two changes, in order of importance:
 | `GET` | `/api/providers/:id/slots?from&to&timezone` | Derived slots, grouped by the **viewer's** local date. |
 | `GET` `PUT` `POST` `DELETE` | `/api/providers/:id/availability/...` | Rules and exceptions. Owner or admin. |
 | `POST` | `/api/bookings` | The concurrency-safe path. |
-| `POST` | `/api/bookings/:id/cancel` `\|` `/reschedule` | Cutoff enforced; `override` is admin-only. |
+| `POST` | `/api/bookings/:id/cancel` | Always succeeds; late ones flagged. |
+| `POST` | `/api/bookings/:id/reschedule` | Cutoff enforced; `override` is admin-only. |
 | `GET` | `/api/admin/calendar?from&to&timezone` | Every provider, rendered in the admin's zone. |
 | `POST` `DELETE` | `/api/admin/blocks` | Blocked time, same constraint as bookings. |
 | `POST` | `/api/admin/reminders/run` | Runs the sweep on demand. |
@@ -239,6 +240,15 @@ the in-process timer and a cron invocation at once) can never double-send. Run s
 
 ## Notable behaviours
 
+- **Cancelling is never refused; rescheduling still is.** These are not the
+  same act. Cancelling *informs* the provider - it hands time back, and blocking
+  it only means they hold a slot nobody can use, including the customer who is
+  definitely not coming. Rescheduling *asks* them to take a different time,
+  which is what short notice makes unreasonable. So a cancellation inside the
+  notice window goes through and is recorded as `cancelled_late` (the
+  provider's email says so, and any fee policy has something to act on), while
+  a reschedule inside the window returns `409 CANCELLATION_CUTOFF_PASSED`
+  unless an admin explicitly overrides it.
 - **Reschedule releases before it takes**, inside one transaction. A small shift (10:00 → 10:15)
   therefore does not collide with itself, and if the new slot loses a race the `ROLLBACK` leaves the
   original booking exactly as it was. A reschedule can never destroy a booking by failing halfway.
