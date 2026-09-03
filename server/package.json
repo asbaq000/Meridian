@@ -1,0 +1,36 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "migrate": "node src/db/migrate.js up",
+    "migrate:reset": "node src/db/migrate.js reset",
+    "seed": "node src/db/seed.js",
+    "job:reminders": "node src/jobs/runReminders.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:local": "node scripts/localdb.js start",
+    "db:local:stop": "node scripts/localdb.js stop"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "luxon": "^3.5.0",
+    "morgan": "^1.10.0",
+    "pg": "^8.13.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "embedded-postgres": "^18.4.0-beta.17",
+    "supertest": "^7.0.0",
+    "vitest": "^2.1.8"
+  }
+}

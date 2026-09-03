@@ -1,0 +1,29 @@
+{
+  "name": "smart-booking",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Smart Booking & Scheduling System",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev -w server",
+    "dev:web": "npm run dev -w web",
+    "migrate": "npm run migrate -w server",
+    "seed": "npm run seed -w server",
+    "test": "npm run test -w server",
+    "db:local": "npm run db:local -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true,
+    "@embedded-postgres/windows-x64@18.4.0-beta.17": true
+  }
+}

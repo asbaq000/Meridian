@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Secrets — never commit these. server/.env holds the live database password.
+.env
+.env.local
+.env.*.local
+
+# Build output
+.next/
+out/
+dist/
+build/
+
+# Local throwaway Postgres cluster (server/scripts/localdb.js)
+.localdb/
+
+# Test + tooling artefacts
+coverage/
+*.log
+.vitest/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
